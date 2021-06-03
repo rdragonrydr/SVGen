@@ -109,7 +109,7 @@ font-size: 16pt;
   	<tr><td>Color:</td> <td>C&lt;Color name&gt;</td></tr>
   	</table>
   	Seperate fields by commas, ideally without spaces. Fields in square brackets are optional.<br>
-  	Example: <b>125,025,Cred,1100,0500,Cgreen,D7,Cblue,150</b><br>
+  	Example: <b>125,025,Cred,1100,0500,C#00CCFF,D7,Cblue,150</b><br>
   	Set the default bit length in the boxes below, as well as the desired SVG graph dimensions.<br>
   	The bit length is required to create the byte entries (Bytes*8*length) or items with omitted options.<br>
   	DO NOT INCLUDE OTHER PUNCTUATION OR LETTERS IN ANY FIELDS OR SOMETHING WILL BREAK.
@@ -360,10 +360,12 @@ function generate(){
         curX+=parsed[1];
       }
       if (parsed[0]==="C"){//Handle Color elements
-        prevcolor=segmentcolor;
-        segmentcolor=parsed[1];
+        if (previtem!="C"){//Since this holds the old color, don't flush it if color is changed twice or a mismatch will happen
+          prevcolor=segmentcolor;
+        }
+        segmentcolor=parsed[1];//set the new color
       }
-      else{
+      else{//Flush color for exiting state transitions to the new color after use (exiting transitions should now be the new color)
         prevcolor=segmentcolor;
       }
       if (parsed[0]==="1" || parsed[0]==="0" || parsed[0]==="D"){//Update "last" item, with permitted list (avoid non-printing items)
