@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<!-- Update to something more relevant -->
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAADpSURBVEhL7Y+BDcMgDASz/1rdqAtQzD+OMRBUIKoi9YQUMJ/75Ag384SC4zgldg92FsTNXQUKR4aZAuvi/s0lezMXcP4WvmzUuhQm8ZiAlqogLplnxgXJ48HceXUhAK4KJJh4lXC6WJAMXq3g1nl18RYePBxIUNYBGafGUkQFowV31FwiipadokS7gIIRIis75Fgy/weIad4CDygPBmr6MJehIkt4sAW44NsjXBhHikqKAsan6HVwhGtmZxkUMLVA+kjfsbMg8qOCjfZuQYSpBWp7hKP1gqY9chYsAk9N92IX/4IhTy8I4QOE+nPn0jM9BwAAAABJRU5ErkJggg=="/>
+<style>
+:root {
+  --edges: #444;
+  --footer: #fff;
+  --bgd: #777;    
+  
+  --button: #444;
+  --button_hover: #000;
+  --button_lit: #a8a800;
+  --warn_disable: red;
+  
+  --accent: #a8a800;
+  --theme_main: #ffffcc;
+  --theme_second: #444;
+  
+  --formcolor: #fff;
+  --inactive: red;
+}
+
+
+body{
+background-color: var(--bgd);
+margin: 0;
+padding: 0;
+}
+td{
+padding-left: 3px;
+border: 1px solid black;
+}
+table{
+border-collapse: collapse;
+}
+.navBarContainer{
+position: absolute;
+background-color: var(--button);
+width: 100%;
+margin: 0;
+padding: 0;
+}
+.nav{
+border: 1px solid var(--theme_second);
+cursor: pointer;
+padding: 14px 16px;
+margin: 0;
+text-decoration: none;
+font-size: 16px;
+transition: all 0.3s ease;
+}
+.navButton{
+color: white;
+text-align: center;
+background-color: var(--button);
+float: none;
+}
+.navButton:hover:not(.activeNav) {
+background-color: var(--button_hover);
+}
+.overlay{
+position: fixed;
+top: 10%; 
+left: 10%;
+right: 10%;
+bottom: 10%;
+border-radius: 15px;
+background-color: var(--theme_main);
+border: 10px solid var(--edges);
+display: flex;
+flex-direction: column;
+overflow: auto;
+}
+.mainWindow{
+padding: 20px;
+display: flex;
+flex-direction: column;
+overflow-y:auto;
+}
+.footer{
+position: fixed;
+bottom: 0;
+left: 0;
+padding: 15px;
+color: var(--footer);
+font-size: 16pt;
+}
+</style>
+<title>SVG Logic Tracer</title>
+</head>
+<body>
+
+<div class="navBarContainer">
+  <button class="navButton nav" onclick="generate();">Parse &amp; Draw</button>
+  <button class="navButton nav" onclick="downloadSVG()">Download Graph</button>
+</div>
+<div class="overlay">
+  <div id="codeView" class="mainWindow">
+  <!-- For more information about how the flex display and the scrollable center pane works, see
+  https://stackoverflow.com/questions/64760545/how-to-make-a-navigation-bar-always-stay-at-the-top-of-a-fixed-position-panel-th/64766390 -->
+  	<div id="data_frame">
+  	<p>Syntax:
+  	<table>
+  	<tr><td>Logic 1:</td> <td>1[length]</td></tr>
+  	<tr><td>Logic 0:</td> <td>0[length]</td></tr>
+  	<tr><td>Data:</td> <td>D[bytes]</td></tr>
+  	<tr><td>Color:</td> <td>C&lt;Color name&gt;</td></tr>
+  	</table>
+  	Seperate fields by commas, ideally without spaces.<br>
+  	Example: <b>125,025,Cred,1100,0500,Cgreen,D7,Cblue,150</b><br>
+  	Set the default bit length in the boxes below, as well as the desired SVG graph dimensions.<br>
+  	The bit length is required to create the byte entries (Bytes*8*length).<br>
+  	DO NOT INCLUDE OTHER PUNCTUATION OR LETTERS IN ANY FIELDS OR SOMETHING WILL BREAK.
+  	</p>
+  	<input type="text" id="w" placeholder="SVG Width"></input>
+  	<input type="text" id="h" placeholder="SVG Height"></input>
+  	<input type="text" id="l" placeholder="Bit Length"></input>
+  	<br>
+  	<textarea rows="5" cols="80" id="entry" placeholder="Enter data here!"></textarea>
+  	 <!-- SVG will go here -->
+  	 <div id="svgarea"></div>
+  </div>
+</div>
+<div class="footer">This application was written by Russell Andres (<a style="color:white;" href="https://github.com/rdragonrydr/">https://github.com/rdragonrydr/</a>).</div>
+</body>
+
+<script type="text/javascript">
+
+//window.onload is a way to autostart JS code when the page is loaded. It's also a great example of a place where
+//you need to use an anonymous function. Here, two are used. The setTimeout registers an action that will occur half a second after the page load.
+window.onload=function(){
+  //The following code in this function is thanks to https://stackoverflow.com/a/25621277/11381501
+  //It seeks out all text boxes and adds a listener to make them auto-resize. It's great.
+  const tx = document.getElementsByTagName('textarea');
+  for (let i = 0; i < tx.length; i++) {
+    tx[i].setAttribute('style', 'height:' + (tx[i].scrollHeight) + 'px;overflow-y:hidden;');
+    tx[i].addEventListener("input", OnInput, false);
+  }
+  function OnInput() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+  }
+}
+
+function downloadSVG(){
+  var svg = document.querySelector('svg');
+  var svgAsXML = (new XMLSerializer).serializeToString(svg);
+  var u = "data:image/svg+xml," + encodeURIComponent(svgAsXML);
+  var a = document.createElement("a");
+  a.innerText="Click Here to download the SVG graph";
+  a.setAttribute("href", u);
+  a.setAttribute("target","_blank");
+  a.setAttribute("download", "graph.svg");
+  //document.getElementById("data_frame").appendChild(a);
+  a.click();
+  //delete a;
+  //delete u;
+}
+
+function generate(){
+  var lines=document.querySelector('textarea').value;
+  var maxwidth=0;
+  var elements=[];
+  var line=lines.split('\n');
+  for (var i=0; i<line.length; i++){
+    item=line[i].split(',');
+    console.log("Parsing line", i, ", contents:", item);
+    elements.push(item);
+  }
+  var bitlen=Number(document.getElementById("l").value);
+  for (var i=0; i<elements.length; i++){
+    var el=elements[i];
+    var curlen=0;
+    for (var j=0; j<el.length; j++){
+      var t=parse(el[j]);
+      if (t[0]==="1" || t[0]==="0" || t[0]==="D"){
+        curlen+=t[1];
+      }
+      if (t[0]==="1" || t[0]==="0"){
+        if (bitlen>t[1]){
+          bitlen=t[1];
+          document.getElementById("l").value=bitlen;
+          console.log("Warning: transition detected of time less than bit length setting.")
+        }
+      }
+    }
+    console.log("Relative length of line", i, "is", curlen);
+    maxwidth=Math.max(maxwidth,curlen);
+  }
+  svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  var d = document.getElementById("svgarea");
+  d.innerHTML="";
+  d.appendChild(svg);
+  svgh = document.getElementById("h").value;
+  svgw = document.getElementById("w").value;
+  if (!svgw || svgw<40){
+    svgw=40;
+    console.log("SVG width too small or unset.");
+  }
+  if (!svgh || svgh<10){
+    svgh=10;
+    console.log("SVG height too small or unset.");
+  }
+  svg.setAttribute("width",svgw);
+  svg.setAttribute("height",svgh);
+  var deltaY = svgh/elements.length-5;
+  var deltaX = (svgw-20)/maxwidth;
+  for (var i=0; i<elements.length; i++){
+    var segmentcolor="black";
+    var previtem="";
+    var curX=0;
+    var curY=deltaY*i;
+    for (var j=0; j<elements[i].length; j++){
+      var d=elements[i][j];
+      var parsed=parse(d);
+      if (parsed[0]==="0"){//Draw logic low (0) elements
+      if (previtem==="0"){
+        var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+        l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
+        l.setAttribute("y1",curY+5+deltaY*0.8);
+        l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+        l.setAttribute("y2",curY+5+deltaY*0.8);
+        l.setAttribute("stroke", segmentcolor);
+        svg.appendChild(l);
+      }
+      else{
+        var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+        l.setAttribute("x1",curX*deltaX+10+0.25*bitlen*deltaX);
+        l.setAttribute("y1",curY+5+deltaY*0.8);
+        l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+        l.setAttribute("y2",curY+5+deltaY*0.8);
+        l.setAttribute("stroke", segmentcolor);
+        svg.appendChild(l);
+      }
+        if (j>0 && previtem!="0"){//Show entering transition line
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10);
+          l.setAttribute("y1",curY+5+deltaY*0.5);
+          l.setAttribute("x2",curX*deltaX+10+0.25*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.8);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        if (j>0 && previtem==="1"){//Show exiting half of transition line
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10);
+          l.setAttribute("y1",curY+5+deltaY*0.5);
+          l.setAttribute("x2",curX*deltaX+10-0.25*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.2);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        curX+=parsed[1];
+      }
+      else if (parsed[0]==="1"){//Draw logic high (1) elements.
+        if (previtem==="1"){
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.2);
+          l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.2);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        else{
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10+0.25*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.2);
+          l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.2);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        if (j>0 && previtem!="1"){//Show entering bit transition line
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10+0.25*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.2);
+          l.setAttribute("x2",curX*deltaX+10);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        if (j>0 && previtem==="0"){//Show exiting half of transition line
+          var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.8);
+          l.setAttribute("x2",curX*deltaX+10);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        curX+=parsed[1];
+      }
+      else if (parsed[0]==="D"){//Draw Data elements (entire bytes, with angled borders per each)
+        var l=document.createElementNS("http://www.w3.org/2000/svg","line");
+        l.setAttribute("x1",curX*deltaX+10+0.25*bitlen*deltaX);
+        l.setAttribute("y1",curY+5+deltaY*0.2);
+        l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+        l.setAttribute("y2",curY+5+deltaY*0.2);
+        l.setAttribute("stroke", segmentcolor);
+        svg.appendChild(l);
+        l=document.createElementNS("http://www.w3.org/2000/svg","line");
+        l.setAttribute("x1",curX*deltaX+10+0.25*bitlen*deltaX);
+        l.setAttribute("y1",curY+5+deltaY*0.8);
+        l.setAttribute("x2",curX*deltaX+10+parsed[1]*deltaX-0.25*bitlen*deltaX);
+        l.setAttribute("y2",curY+5+deltaY*0.8);
+        l.setAttribute("stroke", segmentcolor);
+        svg.appendChild(l);
+        if (j>0 && previtem==="0"){//Show exiting half of transition line
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.8);
+          l.setAttribute("x2",curX*deltaX+10);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        if (j>0 && previtem==="1"){//Show exiting half of transition line
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x1",curX*deltaX+10);
+          l.setAttribute("y1",curY+5+deltaY*0.5);
+          l.setAttribute("x2",curX*deltaX+10-0.25*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.2);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        for (var k=0; k<parsed[2]; k++){
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x2",curX*deltaX+10+k*8*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.8);
+          l.setAttribute("x1",curX*deltaX+10+(k*8+0.25)*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x2",curX*deltaX+10+k*8*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.2);
+          l.setAttribute("x1",curX*deltaX+10+(k*8+0.25)*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x2",curX*deltaX+10+(k+1)*8*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.8);
+          l.setAttribute("x1",curX*deltaX+10+(k*8+7.75)*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+          l=document.createElementNS("http://www.w3.org/2000/svg","line");
+          l.setAttribute("x2",curX*deltaX+10+(k+1)*8*bitlen*deltaX);
+          l.setAttribute("y1",curY+5+deltaY*0.2);
+          l.setAttribute("x1",curX*deltaX+10+(k*8+7.75)*bitlen*deltaX);
+          l.setAttribute("y2",curY+5+deltaY*0.5);
+          l.setAttribute("stroke", segmentcolor);
+          svg.appendChild(l);
+        }
+        curX+=parsed[1];
+      }
+      else if (parsed[0]==="C"){//Handle Color elements
+        segmentcolor=parsed[1];
+      }
+      if (parsed[0]==="1" || parsed[0]==="0" || parsed[0]==="D"){//Update "last" item, with permitted list (avoid non-printing items)
+        previtem=parsed[0];
+      }
+    }
+  }
+}
+
+function parse(item){
+  var bitlen=Number(document.getElementById("l").value);
+  var curlen=Number(item.substr(1));
+  if (item[0]==="D"){
+    if (!curlen || curlen<=0){
+      curlen=1;
+    }
+    return ["D", curlen*8*bitlen, curlen];
+  }
+  else{
+    if (item[0]==="0"){
+      if (!curlen || curlen<=0){
+        curlen=bitlen;
+      }
+      return ["0", curlen];
+    }
+    else{
+      if (item[0]==="C"){
+        return ["C", item.substr(1)];
+      }
+      else if (item[0]==="1"){
+        if (!curlen || curlen<=0){
+          curlen=bitlen;
+        }
+        return ["1", curlen];
+      }
+    }
+  }
+}
+
+
+
+
+</script>
+
+</html>
