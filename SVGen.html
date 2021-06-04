@@ -178,13 +178,6 @@ function generate(){
       if (t[0]==="1" || t[0]==="0" || t[0]==="D"){
         curlen+=t[1];
       }
-      if (t[0]==="1" || t[0]==="0"){
-        if (bitlen>t[1]){
-          bitlen=t[1];
-          document.getElementById("l").value=bitlen;
-          console.log("Warning: transition detected of time less than bit length setting.")
-        }
-      }
     }
     console.log("Relative length of line", i, "is", curlen);
     maxwidth=Math.max(maxwidth,curlen);
