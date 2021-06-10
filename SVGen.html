@@ -237,7 +237,7 @@ function generate(){
           l.setAttribute("stroke", segmentcolor);
           svg.appendChild(l);
         }
-        if (j>0 && previtem==="1"){//Show exiting half of transition line
+        if (j>0 && previtem==="1" && j!=0){//Show exiting half of transition line
           var l=document.createElementNS("http://www.w3.org/2000/svg","line");
           l.setAttribute("x1",curX*deltaX+10);
           l.setAttribute("y1",curY+5+deltaY*0.5);
@@ -276,7 +276,7 @@ function generate(){
           l.setAttribute("stroke", segmentcolor);
           svg.appendChild(l);
         }
-        if (j>0 && previtem==="0"){//Show exiting half of transition line
+        if (j>0 && previtem==="0" && j!=0){//Show exiting half of transition line
           var l=document.createElementNS("http://www.w3.org/2000/svg","line");
           l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
           l.setAttribute("y1",curY+5+deltaY*0.8);
@@ -302,7 +302,7 @@ function generate(){
         l.setAttribute("y2",curY+5+deltaY*0.8);
         l.setAttribute("stroke", segmentcolor);
         svg.appendChild(l);
-        if (j>0 && previtem==="0"){//Show exiting half of transition line
+        if (j>0 && previtem==="0" && j!=0){//Show exiting half of transition line
           l=document.createElementNS("http://www.w3.org/2000/svg","line");
           l.setAttribute("x1",curX*deltaX+10-0.25*bitlen*deltaX);
           l.setAttribute("y1",curY+5+deltaY*0.8);
@@ -311,7 +311,7 @@ function generate(){
           l.setAttribute("stroke", prevcolor);
           svg.appendChild(l);
         }
-        if (j>0 && previtem==="1"){//Show exiting half of transition line
+        if (j>0 && previtem==="1" && j!=0){//Show exiting half of transition line
           l=document.createElementNS("http://www.w3.org/2000/svg","line");
           l.setAttribute("x1",curX*deltaX+10);
           l.setAttribute("y1",curY+5+deltaY*0.5);
